@@ -1958,30 +1958,40 @@ class MainWindow(QtWidgets.QMainWindow):
             logger.warning("image_path is None, cannot set zoom")
             return
 
+        canvas = self._canvas_widgets.canvas
+        h_bar = self._canvas_widgets.scroll_bars[Qt.Orientation.Horizontal]
+        v_bar = self._canvas_widgets.scroll_bars[Qt.Orientation.Vertical]
+
         if pos is None:
-            pos = QtCore.QPointF(
-                self._canvas_widgets.canvas.visibleRegion().boundingRect().center()
-            )
-        canvas_width_old: int = self._canvas_widgets.canvas.width()
+            pos = QtCore.QPointF(canvas.visibleRegion().boundingRect().center())
+
+        # Anchor the zoom on the cursor: the image point currently under the
+        # pointer must stay under the pointer after the scale changes. `pos` is
+        # in canvas-widget coordinates (the scroll area's child widget), so the
+        # pointer's offset within the viewport is `pos - scroll_value`. We
+        # capture the image point and the viewport-relative cursor position
+        # *before* the scale changes, then re-derive the scroll position from
+        # the same image point afterwards. This is exact regardless of how the
+        # overscroll slack / image-origin offset shift during the zoom.
+        image_point = canvas.transform_point_widget_to_image(pos)
+        viewport_anchor = QtCore.QPointF(
+            pos.x() - h_bar.value(),
+            pos.y() - v_bar.value(),
+        )
 
         self._sync_zoom_mode_actions()
         self._canvas_widgets.zoom_widget.setValue(value)  # triggers self._paint_canvas
         self._zoom_values[self._image_path] = (self._zoom_mode, value)
 
-        canvas_width_new: int = self._canvas_widgets.canvas.width()
-        if canvas_width_old == canvas_width_new:
-            return
-        canvas_scale_factor = canvas_width_new / canvas_width_old
-        x_shift: float = pos.x() * canvas_scale_factor - pos.x()
-        y_shift: float = pos.y() * canvas_scale_factor - pos.y()
+        # Re-anchor so the same image point sits at the same viewport position.
+        new_widget_point = canvas.transform_point_image_to_widget(image_point)
         self.set_scroll_value(
             Qt.Orientation.Horizontal,
-            self._canvas_widgets.scroll_bars[Qt.Orientation.Horizontal].value()
-            + x_shift,
+            new_widget_point.x() - viewport_anchor.x(),
         )
         self.set_scroll_value(
             Qt.Orientation.Vertical,
-            self._canvas_widgets.scroll_bars[Qt.Orientation.Vertical].value() + y_shift,
+            new_widget_point.y() - viewport_anchor.y(),
         )
 
     def _set_zoom_to_original(self) -> None:

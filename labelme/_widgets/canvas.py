@@ -1571,11 +1571,25 @@ class Canvas(QtWidgets.QWidget):
             return ai_shapes[0]
         return _draft_to_shape(preview)
 
-    def _transform_point_widget_to_image(self, point: QPointF) -> QPointF:
+    def transform_point_widget_to_image(self, point: QPointF) -> QPointF:
         origin = self._compute_image_origin_offset()
         image_x = point.x() / self.scale - origin.x()
         image_y = point.y() / self.scale - origin.y()
         return QPointF(image_x, image_y)
+
+    def transform_point_image_to_widget(self, point: QPointF) -> QPointF:
+        # Inverse of `transform_point_widget_to_image`. The world transform set
+        # up in `_setup_world_transform` is translate(origin * scale) followed
+        # by scale(scale), so a point in image space lands at
+        # (point + origin) * scale in widget space.
+        origin = self._compute_image_origin_offset()
+        return QPointF(
+            (point.x() + origin.x()) * self.scale,
+            (point.y() + origin.y()) * self.scale,
+        )
+
+    def _transform_point_widget_to_image(self, point: QPointF) -> QPointF:
+        return self.transform_point_widget_to_image(point)
 
     def _compute_image_origin_offset(self) -> QPointF:
         area = super().size()
