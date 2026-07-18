@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import osam
 from loguru import logger
 from numpy.typing import NDArray
 
@@ -12,6 +13,19 @@ from ._shape_builders import shapes_from_detections
 from ._suppression import suppress_detections_greedy
 from ._suppression import suppress_detections_overlapping_existing_shapes
 from ._types import AiOutputFormat
+
+if TYPE_CHECKING:
+    import osam
+
+
+def _require_osam() -> None:
+    try:
+        import osam  # noqa: F401
+    except ImportError as e:
+        raise ImportError(
+            "AI-assisted annotation requires the 'osam' package. "
+            "Install it with: pip install osam"
+        ) from e
 
 
 class AiAssistSession:
@@ -42,6 +56,9 @@ class AiAssistSession:
         point_labels: NDArray[np.intp],
         existing_shapes: list[Shape],
     ) -> list[Shape]:
+        _require_osam()
+        import osam
+
         response: osam.types.GenerateResponse = self._get_session().run(
             image=image,
             image_id=image_id,

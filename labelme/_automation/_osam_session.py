@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 import collections
+from typing import TYPE_CHECKING
 
 import numpy as np
-import osam
 from loguru import logger
 from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    import osam
+
+
+def _require_osam() -> None:
+    try:
+        import osam  # noqa: F401
+    except ImportError as e:
+        raise ImportError(
+            "AI-assisted annotation requires the 'osam' package. "
+            "Install it with: pip install osam"
+        ) from e
 
 
 class OsamSession:
@@ -36,6 +49,9 @@ class OsamSession:
         point_labels: NDArray[np.intp] | None = None,
         texts: list[str] | None = None,
     ) -> osam.types.GenerateResponse:
+        _require_osam()
+        import osam
+
         image_embedding: osam.types.ImageEmbedding | None
         try:
             image_embedding = self._get_or_compute_embedding(
@@ -75,6 +91,9 @@ class OsamSession:
     def _get_or_compute_embedding(
         self, image: NDArray[np.uint8], image_id: str
     ) -> osam.types.ImageEmbedding:
+        _require_osam()
+        import osam
+
         for key, embedding in self._embedding_cache:
             if key == image_id:
                 return embedding
@@ -87,6 +106,9 @@ class OsamSession:
         return embedding
 
     def _get_or_load_model(self) -> osam.types.Model:
+        _require_osam()
+        import osam
+
         if self._model is None:
             logger.debug("Loading model with name={!r}", self._model_name)
             self._model = osam.apis.get_model_type_by_name(self._model_name)()

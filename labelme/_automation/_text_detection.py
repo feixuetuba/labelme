@@ -1,16 +1,34 @@
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING
 
 import numpy as np
-import osam
 from loguru import logger
 from numpy.typing import NDArray
 
 from ._osam_session import OsamSession
 
+if TYPE_CHECKING:
+    import osam
+
+
+def _require_osam() -> None:
+    try:
+        import osam  # noqa: F401
+    except ImportError as e:
+        raise ImportError(
+            "AI-assisted annotation requires the 'osam' package. "
+            "Install it with: pip install osam"
+        ) from e
+
 
 def get_bboxes_from_texts(
     session: OsamSession, image: np.ndarray, image_id: str, texts: list[str]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[NDArray[np.bool_]] | None]:
+    _require_osam()
+    import osam
+
     logger.debug(
         f"Requesting with model={session.model_name!r}, "
         f"image={(image.shape, image.dtype)}, texts={texts!r}"
@@ -66,6 +84,9 @@ def nms_bboxes(
     score_threshold: float,
     max_num_detections: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    _require_osam()
+    import osam
+
     if len(boxes) == 0:
         return boxes, scores, labels, np.empty((0,), dtype=np.int32)
 

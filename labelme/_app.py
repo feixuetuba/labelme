@@ -20,7 +20,6 @@ from typing import cast
 import imgviz
 import natsort
 import numpy as np
-import osam
 from loguru import logger
 from numpy.typing import NDArray
 from PySide6 import QtCore
@@ -1338,6 +1337,16 @@ class MainWindow(QtWidgets.QMainWindow):
         texts = self._ai_text.get_text_prompt().split(",")
 
         model_name: str = self._ai_text.get_model_name()
+        try:
+            import osam
+        except ImportError:
+            QMessageBox.warning(
+                self,
+                "Missing Dependency",
+                "AI text-to-annotation requires the 'osam' package.\n"
+                "Install it with: pip install osam",
+            )
+            return
         model_type = osam.apis.get_model_type_by_name(model_name)
         if model_type.get_size() is None:
             if not download_ai_model(model_name=model_name, parent=self):

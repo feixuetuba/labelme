@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Final
 
-import osam
-import osam.types
 from loguru import logger
 from PySide6.QtCore import Qt
 from PySide6.QtCore import QThread
@@ -23,7 +21,7 @@ class _DownloadThread(QThread):
     succeeded = Signal()
     error = Signal(Exception)
 
-    def __init__(self, model_type: type[osam.types.Model], parent: QWidget) -> None:
+    def __init__(self, model_type: type, parent: QWidget) -> None:
         super().__init__(parent)
         self._model_type = model_type
         self._total_files = sum(
@@ -76,6 +74,12 @@ def _format_bytes(n: int) -> str:
 
 
 def download_ai_model(model_name: str, parent: QWidget) -> bool:
+    try:
+        import osam.apis
+    except ImportError:
+        logger.error("osam 未安装，无法下载 AI 模型。请运行: pip install osam")
+        return False
+
     model_type = osam.apis.get_model_type_by_name(model_name)
 
     if model_type.get_size() is not None:
